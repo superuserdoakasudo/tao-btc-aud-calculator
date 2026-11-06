@@ -1,5 +1,5 @@
 /* Minimal offline cache for calculator shell */
-const CACHE = 'tao-btc-aud-v1';
+const CACHE = 'tao-btc-aud-v2';
 const ASSETS = ['./', './index.html', './manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {

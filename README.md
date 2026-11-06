@@ -1,49 +1,44 @@
-# TAO · BTC · AUD Calculator
+# TAO · BTC · Fiat → AUD Calculator
 
-Mobile-first dark converter for **TAO ↔ AUD**, **BTC ↔ AUD**, and **sats ↔ AUD**.
+Mobile-first dark converter:
 
-- Live rates from [CoinGecko simple/price](https://api.coingecko.com/api/v3/simple/price?ids=bittensor,bitcoin&vs_currencies=aud,btc) (`bittensor`, `bitcoin` vs `aud` + `btc`)
-- Fallback book baseline: **1 TAO = A$326.13** if offline
-- **1 BTC = 100,000,000 sats**
-- Optional **24% tax reserve** (AUD field shows net when enabled)
-- Local-only persistence (`localStorage`) — no accounts, no wallets
-- PWA shell: `manifest.webmanifest` + `sw.js` (offline UI; prices still need network)
+| Tab | Converts |
+|-----|----------|
+| **TAO** | Bittensor ↔ AUD (+ optional 24% tax reserve for reward planning) |
+| **BTC** | Bitcoin ↔ AUD |
+| **Sats** | Satoshis ↔ AUD (`1 BTC = 100,000,000 sats`) |
+| **USD** | US dollar ↔ AUD |
+| **EUR** | Euro ↔ AUD |
+
+## Rate sources
+
+- **Crypto:** [CoinGecko](https://api.coingecko.com/api/v3/simple/price?ids=bittensor,bitcoin&vs_currencies=aud,btc) — `bittensor`, `bitcoin` vs `aud` + `btc`
+- **Fiat:** [Frankfurter](https://api.frankfurter.dev/v1/latest?from=EUR&to=AUD,USD) — ECB daily eurofxref rates (`EUR→AUD`, `EUR→USD`; USD/AUD via EUR cross)
+- Independent fetches; offline falls back to **Cached reference** (TAO A$326.13, BTC A$114,344, EUR A$1.77, USD A$1.52)
+
+Tax reserve applies **only on the TAO tab** (subnet reward planning). Fiat tabs are plain FX.
 
 ## Public URL
 
-GitHub Pages (after deploy):
+https://superuserdoakasudo.github.io/tao-btc-aud-calculator/
 
-`https://superuserdoakasudo.github.io/tao-btc-aud-calculator/`
-
-## Wrap as an Android WebView app (for Claude / CapCut-style packaging)
-
-Minimal Android activity:
-
-1. Create an empty Android app (minSdk 24+).
-2. `AndroidManifest.xml`: add `INTERNET` permission; set `usesCleartextTraffic="false"`.
-3. Layout: full-screen `WebView`.
-4. In `MainActivity`:
+## Android WebView wrap
 
 ```kotlin
 webView.settings.javaScriptEnabled = true
 webView.settings.domStorageEnabled = true
-webView.settings.cacheMode = WebSettings.LOAD_DEFAULT
 webView.webViewClient = WebViewClient()
 webView.loadUrl("https://superuserdoakasudo.github.io/tao-btc-aud-calculator/")
 ```
 
-5. Optional: enable `setDomStorageEnabled(true)` so tax/tab preferences persist inside the WebView.
-6. Do **not** inject Java bridges or load `file://` — use the HTTPS URL above so CoinGecko CORS works.
-
-No private keys, seed phrases, or wallet addresses belong in this app.
+Needs `INTERNET`. Prefer the HTTPS URL (not `file://`) so CoinGecko + Frankfurter CORS work. No wallets / seeds.
 
 ## Local test
 
 ```bash
 python3 -m http.server 8765 --directory .
-# open http://127.0.0.1:8765/
 ```
 
 ## License
 
-Public domain / CC0 — use freely.
+CC0 / public domain.
