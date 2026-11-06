@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#0b1220">
+<meta name="description" content="TAO / BTC / Sats ↔ AUD converter with live rates and 24% tax reserve">
+<title>TAO · BTC · AUD Calculator</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b1220'/%3E%3Ctext x='32' y='42' text-anchor='middle' font-size='28' fill='%2322d3ee'%3Eτ%3C/text%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0b1220; --card:#121a2b; --line:#1e2a44; --text:#e8eefc; --muted:#8b9bb8;
+  --tao:#22d3ee; --btc:#f7931a; --good:#34d399; --warn:#fbbf24; --bad:#f87171;
+  --w:min(100vw, 380px);
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+html,body{margin:0; padding:0; background:var(--bg); color:var(--text);
+  font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  min-height:100%;}
+body{display:flex; justify-content:center; padding:12px 10px 28px;}
+.app{width:var(--w); display:flex; flex-direction:column; gap:12px;}
+header{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+h1{margin:0; font-size:1.05rem; font-weight:700; letter-spacing:.02em;}
+.badge{font-size:.68rem; color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:3px 8px;}
+.tabs{display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; background:var(--card); padding:6px; border-radius:14px; border:1px solid var(--line);}
+.tab{appearance:none; border:0; background:transparent; color:var(--muted); font-weight:650; padding:10px 8px; border-radius:10px; cursor:pointer;}
+.tab[aria-selected="true"].tao{background:rgba(34,211,238,.14); color:var(--tao);}
+.tab[aria-selected="true"].btc,.tab[aria-selected="true"].sats{background:rgba(247,147,26,.14); color:var(--btc);}
+.card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px;}
+.label{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; color:var(--muted); font-size:.78rem; font-weight:600; text-transform:uppercase; letter-spacing:.04em;}
+.accent-tao{color:var(--tao)} .accent-btc{color:var(--btc)}
+.row{display:flex; gap:8px; align-items:center;}
+input[type="number"],input[type="text"]{
+  width:100%; background:#0a101c; border:1px solid var(--line); color:var(--text);
+  border-radius:12px; padding:14px 12px; font-size:1.25rem; font-weight:650;
+  outline:none; -moz-appearance:textfield;
+}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+input:focus{border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.2);}
+.unit{min-width:48px; text-align:right; font-weight:700; color:var(--muted);}
+.switch{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+.switch label{font-size:.92rem;}
+.toggle{position:relative; width:46px; height:28px; flex:0 0 auto;}
+.toggle input{opacity:0; width:0; height:0;}
+.slider{position:absolute; inset:0; background:#243149; border-radius:999px; cursor:pointer; transition:.15s;}
+.slider:before{content:""; position:absolute; width:22px; height:22px; left:3px; top:3px; background:#cbd5e1; border-radius:50%; transition:.15s;}
+.toggle input:checked + .slider{background:rgba(52,211,153,.35);}
+.toggle input:checked + .slider:before{transform:translateX(18px); background:var(--good);}
+.chips{display:flex; flex-wrap:wrap; gap:6px;}
+.chip{appearance:none; border:1px solid var(--line); background:#0a101c; color:var(--text);
+  border-radius:999px; padding:8px 10px; font-size:.8rem; font-weight:650; cursor:pointer;}
+.chip:active{transform:scale(.97);}
+.chip.goal{border-color:rgba(52,211,153,.4); color:var(--good);}
+.meta{display:grid; gap:6px; font-size:.82rem; color:var(--muted);}
+.meta b{color:var(--text); font-weight:650;}
+.rate{font-variant-numeric:tabular-nums;}
+.actions{display:flex; gap:8px;}
+button.btn{flex:1; appearance:none; border:1px solid var(--line); background:#0a101c; color:var(--text);
+  border-radius:12px; padding:12px; font-weight:700; cursor:pointer;}
+button.btn.primary{background:linear-gradient(180deg,#1d4ed8,#1e40af); border-color:#1e3a8a;}
+.status{min-height:1.2em; font-size:.78rem; color:var(--muted);}
+.status.ok{color:var(--good);} .status.warn{color:var(--warn);} .status.err{color:var(--bad);}
+.foot{font-size:.72rem; color:#6b7a96; text-align:center; line-height:1.35;}
+.plan{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+.plan .box{background:#0a101c; border:1px solid var(--line); border-radius:12px; padding:10px;}
+.plan .k{font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:.04em;}
+.plan .v{font-size:1rem; font-weight:700; margin-top:2px; font-variant-numeric:tabular-nums;}
+</style>
+</head>
+<body>
+<main class="app" id="app">
+  <header>
+    <h1>TAO · BTC · AUD</h1>
+    <span class="badge">β live</span>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Asset">
+    <button class="tab tao" role="tab" id="tab-tao" aria-selected="true" data-asset="tao">TAO</button>
+    <button class="tab btc" role="tab" id="tab-btc" aria-selected="false" data-asset="btc">BTC</button>
+    <button class="tab sats" role="tab" id="tab-sats" aria-selected="false" data-asset="sats">Sats</button>
+  </nav>
+
+  <section class="card">
+    <div class="label"><span id="tokenLabel" class="accent-tao">Amount (TAO)</span><span id="tokenHint">1 TAO</span></div>
+    <div class="row">
+      <input id="tokenIn" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Token amount" value="1">
+      <div class="unit" id="tokenUnit">τ</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="label"><span>Amount (AUD)</span><span>A$</span></div>
+    <div class="row">
+      <input id="audIn" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="AUD amount" value="">
+      <div class="unit">A$</div>
+    </div>
+    <div class="chips" style="margin-top:10px">
+      <button type="button" class="chip" data-aud="25">A$25</button>
+      <button type="button" class="chip" data-aud="100">A$100</button>
+      <button type="button" class="chip goal" data-aud="3000">A$3,000</button>
+      <button type="button" class="chip goal" data-plan="daily">/day · 30d</button>
+      <button type="button" class="chip goal" data-plan="weekly">/week</button>
+    </div>
+  </section>
+
+  <section class="card switch">
+    <label for="taxToggle">24% tax reserve (net payout)</label>
+    <div class="toggle">
+      <input id="taxToggle" type="checkbox" aria-label="Apply 24% tax reserve">
+      <span class="slider" onclick="document.getElementById('taxToggle').click()"></span>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="meta">
+      <div class="rate">1 <span id="rateAsset">TAO</span> = <b id="rateAud">—</b> A$</div>
+      <div class="rate" id="crossRateRow">1 TAO = <b id="rateTaoBtc">—</b> BTC</div>
+      <div>Gross ↔ Net: <b id="grossNet">—</b></div>
+    </div>
+    <div class="plan" style="margin-top:10px">
+      <div class="box"><div class="k">Daily for A$3k/mo</div><div class="v" id="dailyNeed">—</div></div>
+      <div class="box"><div class="k">Weekly for A$3k/mo</div><div class="v" id="weeklyNeed">—</div></div>
+    </div>
+  </section>
+
+  <div class="actions">
+    <button type="button" class="btn primary" id="refreshBtn">Refresh rates</button>
+    <button type="button" class="btn" id="swapBtn" title="Flip last-edited field">Flip</button>
+  </div>
+  <div class="status" id="status">Loading rates…</div>
+  <p class="foot">Live CoinGecko · cached offline · no wallets · indicative only · 1 BTC = 100,000,000 sats</p>
+</main>
+<script>
+(function(){
+  const FALLBACK = { taoAud: 326.13, btcAud: 110263, taoBtc: 0.00296 };
+  const SATS_PER_BTC = 100000000;
+  const TAX = 0.24;
+  const KEY = 'tao-btc-aud-calc-v1';
+
+  const el = {
+    tokenIn: document.getElementById('tokenIn'),
+    audIn: document.getElementById('audIn'),
+    tax: document.getElementById('taxToggle'),
+    status: document.getElementById('status'),
+    rateAud: document.getElementById('rateAud'),
+    rateTaoBtc: document.getElementById('rateTaoBtc'),
+    rateAsset: document.getElementById('rateAsset'),
+    tokenLabel: document.getElementById('tokenLabel'),
+    tokenHint: document.getElementById('tokenHint'),
+    tokenUnit: document.getElementById('tokenUnit'),
+    cross: document.getElementById('crossRateRow'),
+    grossNet: document.getElementById('grossNet'),
+    dailyNeed: document.getElementById('dailyNeed'),
+    weeklyNeed: document.getElementById('weeklyNeed'),
+    refresh: document.getElementById('refreshBtn'),
+    swap: document.getElementById('swapBtn'),
+  };
+
+  let asset = 'tao'; // tao | btc | sats
+  let lastEdited = 'token'; // token | aud
+  let rates = { ...FALLBACK, updatedAt: null, source: 'fallback' };
+  let updating = false;
+
+  function clampNum(n){
+    if (!Number.isFinite(n)) return NaN;
+    if (n < 0) return 0;
+    if (n > 1e15) return 1e15;
+    return n;
+  }
+  function parseAmt(s){
+    if (s == null) return NaN;
+    const t = String(s).replace(/,/g,'').trim();
+    if (!t || t === '.' || t === '-') return NaN;
+    return clampNum(Number(t));
+  }
+  function fmt(n, digits){
+    if (!Number.isFinite(n)) return '—';
+    const d = digits == null ? (Math.abs(n) >= 1000 ? 2 : Math.abs(n) >= 1 ? 4 : 8) : digits;
+    return n.toLocaleString('en-AU', { maximumFractionDigits: d, minimumFractionDigits: 0 });
+  }
+  function fmtAud(n){ return Number.isFinite(n) ? 'A$' + n.toLocaleString('en-AU',{maximumFractionDigits:2, minimumFractionDigits:2}) : '—'; }
+  function unitRate(){
+    if (asset === 'tao') return rates.taoAud;
+    if (asset === 'btc') return rates.btcAud;
+    return rates.btcAud / SATS_PER_BTC; // AUD per sat
+  }
+  function assetLabel(){
+    return asset === 'tao' ? 'TAO' : asset === 'btc' ? 'BTC' : 'sats';
+  }
+  function setStatus(msg, kind){
+    el.status.textContent = msg;
+    el.status.className = 'status' + (kind ? ' ' + kind : '');
+  }
+  function taxFactor(){ return el.tax.checked ? (1 - TAX) : 1; }
+
+  function tokenToAudGross(tok){ return tok * unitRate(); }
+  function audGrossToToken(aud){ const r = unitRate(); return r > 0 ? aud / r : NaN; }
+
+  function syncFromLast(){
+    if (updating) return;
+    updating = true;
+    try {
+      if (lastEdited === 'token'){
+        const tok = parseAmt(el.tokenIn.value);
+        if (!Number.isFinite(tok)) { el.audIn.value = ''; }
+        else {
+          let gross = tokenToAudGross(tok);
+          let shown = el.tax.checked ? gross * (1 - TAX) : gross;
+          el.audIn.value = Number.isFinite(shown) ? String(+shown.toFixed(2)) : '';
+        }
+      } else {
+        const audShown = parseAmt(el.audIn.value);
+        if (!Number.isFinite(audShown)) { el.tokenIn.value = ''; }
+        else {
+          let gross = el.tax.checked ? audShown / (1 - TAX) : audShown;
+          let tok = audGrossToToken(gross);
+          let digits = asset === 'sats' ? 0 : asset === 'btc' ? 8 : 6;
+          el.tokenIn.value = Number.isFinite(tok) ? String(+tok.toFixed(digits)) : '';
+        }
+      }
+      updateMeta();
+      persist();
+    } finally { updating = false; }
+  }
+
+  function updateMeta(){
+    const label = assetLabel();
+    el.rateAsset.textContent = label;
+    el.rateAud.textContent = fmt(unitRate(), asset === 'sats' ? 8 : 2);
+    el.rateTaoBtc.textContent = fmt(rates.taoBtc, 8);
+    el.cross.style.display = asset === 'tao' ? '' : 'none';
+
+    const tok = parseAmt(el.tokenIn.value);
+    if (Number.isFinite(tok)){
+      const gross = tokenToAudGross(tok);
+      const net = gross * (1 - TAX);
+      el.grossNet.textContent = el.tax.checked
+        ? fmtAud(gross) + ' gross → ' + fmtAud(net) + ' net'
+        : fmtAud(gross) + ' (tax off)';
+    } else el.grossNet.textContent = '—';
+
+    // A$3000/mo planning in current asset units (gross unless tax on → show gross needed for net goal)
+    const monthGoal = 3000;
+    const dailyAud = monthGoal / 30;
+    const weeklyAud = monthGoal / (365.25/52);
+    const needDailyAud = el.tax.checked ? dailyAud / (1 - TAX) : dailyAud;
+    const needWeeklyAud = el.tax.checked ? weeklyAud / (1 - TAX) : weeklyAud;
+    const dTok = audGrossToToken(needDailyAud);
+    const wTok = audGrossToToken(needWeeklyAud);
+    const dig = asset === 'sats' ? 0 : asset === 'btc' ? 6 : 4;
+    el.dailyNeed.textContent = fmt(dTok, dig) + ' ' + label;
+    el.weeklyNeed.textContent = fmt(wTok, dig) + ' ' + label;
+
+    // chrome
+    const isTao = asset === 'tao';
+    el.tokenLabel.className = isTao ? 'accent-tao' : 'accent-btc';
+    el.tokenLabel.textContent = 'Amount (' + label + ')';
+    el.tokenUnit.textContent = asset === 'tao' ? 'τ' : asset === 'btc' ? '₿' : 'sats';
+    el.tokenHint.textContent = asset === 'sats' ? '100,000,000 sats = 1 BTC' : ('1 ' + label);
+  }
+
+  function setAsset(next){
+    asset = next;
+    document.querySelectorAll('.tab').forEach(t => {
+      t.setAttribute('aria-selected', t.dataset.asset === asset ? 'true' : 'false');
+    });
+    // convert displayed token amount into new unit using AUD bridge when switching
+    const audShown = parseAmt(el.audIn.value);
+    if (Number.isFinite(audShown)) {
+      lastEdited = 'aud';
+    }
+    syncFromLast();
+    persist();
+  }
+
+  async function fetchRates(){
+    setStatus('Fetching CoinGecko…');
+    const url = 'https://api.coingecko.com/api/v3/simple/price?ids=bittensor,bitcoin&vs_currencies=aud,btc';
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const j = await res.json();
+      const taoAud = Number(j?.bittensor?.aud);
+      const btcAud = Number(j?.bitcoin?.aud);
+      let taoBtc = Number(j?.bittensor?.btc);
+      if (!Number.isFinite(taoBtc) && Number.isFinite(taoAud) && Number.isFinite(btcAud) && btcAud > 0) {
+        taoBtc = taoAud / btcAud;
+      }
+      if (!Number.isFinite(taoAud) || !Number.isFinite(btcAud)) throw new Error('Bad payload');
+      rates = { taoAud, btcAud, taoBtc, updatedAt: Date.now(), source: 'coingecko' };
+      const when = new Date(rates.updatedAt).toLocaleString('en-AU', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+      setStatus('Updated ' + when + ' · CoinGecko', 'ok');
+      syncFromLast();
+      persist();
+    } catch (e) {
+      const age = rates.updatedAt ? new Date(rates.updatedAt).toLocaleString('en-AU') : 'book baseline';
+      setStatus('Offline / rate error — using ' + age + ' (TAO A$' + fmt(rates.taoAud,2) + ')', 'warn');
+      syncFromLast();
+    }
+  }
+
+  function persist(){
+    try {
+      localStorage.setItem(KEY, JSON.stringify({
+        asset, lastEdited,
+        token: el.tokenIn.value,
+        aud: el.audIn.value,
+        tax: el.tax.checked,
+        rates
+      }));
+    } catch(_){}
+  }
+  function restore(){
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (!raw) return;
+      const s = JSON.parse(raw);
+      if (s.rates && Number.isFinite(s.rates.taoAud) && Number.isFinite(s.rates.btcAud)) {
+        rates = Object.assign({}, FALLBACK, s.rates);
+      }
+      if (s.asset === 'tao' || s.asset === 'btc' || s.asset === 'sats') asset = s.asset;
+      if (s.lastEdited === 'token' || s.lastEdited === 'aud') lastEdited = s.lastEdited;
+      if (typeof s.token === 'string') el.tokenIn.value = s.token;
+      if (typeof s.aud === 'string') el.audIn.value = s.aud;
+      if (typeof s.tax === 'boolean') el.tax.checked = s.tax;
+      document.querySelectorAll('.tab').forEach(t => {
+        t.setAttribute('aria-selected', t.dataset.asset === asset ? 'true' : 'false');
+      });
+    } catch(_){}
+  }
+
+  // events
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => setAsset(t.dataset.asset)));
+  el.tokenIn.addEventListener('input', () => { lastEdited = 'token'; syncFromLast(); });
+  el.audIn.addEventListener('input', () => { lastEdited = 'aud'; syncFromLast(); });
+  el.tax.addEventListener('change', () => { syncFromLast(); });
+  el.refresh.addEventListener('click', () => fetchRates());
+  el.swap.addEventListener('click', () => {
+    lastEdited = lastEdited === 'token' ? 'aud' : 'token';
+    syncFromLast();
+  });
+  document.querySelectorAll('.chip[data-aud]').forEach(b => b.addEventListener('click', () => {
+    el.audIn.value = b.dataset.aud;
+    lastEdited = 'aud';
+    syncFromLast();
+  }));
+  document.querySelectorAll('.chip[data-plan]').forEach(b => b.addEventListener('click', () => {
+    const month = 3000;
+    const aud = b.dataset.plan === 'daily' ? month / 30 : month / (365.25/52);
+    el.audIn.value = String(+aud.toFixed(2));
+    lastEdited = 'aud';
+    // ensure tax interpretation matches "need this net" if tax on — value is the AUD field shown
+    syncFromLast();
+  }));
+
+  // keyboard: R refresh, 1/2/3 tabs, T tax
+  window.addEventListener('keydown', (e) => {
+    if (e.target && (e.target.tagName === 'INPUT')) return;
+    if (e.key === 'r' || e.key === 'R') fetchRates();
+    if (e.key === '1') setAsset('tao');
+    if (e.key === '2') setAsset('btc');
+    if (e.key === '3') setAsset('sats');
+    if (e.key === 't' || e.key === 'T') { el.tax.checked = !el.tax.checked; syncFromLast(); }
+  });
+
+  restore();
+  syncFromLast();
+  fetchRates();
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  }
+})();
+</script>
+</body>
+</html>

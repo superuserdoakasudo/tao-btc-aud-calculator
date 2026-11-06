@@ -1,0 +1,18 @@
+{
+  "name": "TAO · BTC · AUD Calculator",
+  "short_name": "TAO/BTC AUD",
+  "description": "Live TAO, BTC and sats to Australian dollar converter with 24% tax reserve.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "lang": "en-AU",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b1220'/%3E%3Ctext x='32' y='42' text-anchor='middle' font-size='28' fill='%2322d3ee'%3Eτ%3C/text%3E%3C/svg%3E",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
